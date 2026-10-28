@@ -1,0 +1,39 @@
+{
+  "name": "crowdquest-live",
+  "version": "0.1.0",
+  "description": "Collaborative Twitch chat challenge system",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local --import tsx server/index.ts",
+    "convex:dev": "npx convex dev",
+    "convex:codegen": "npx convex codegen",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "convex": "^1.48.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "convex-test": "^0.0.66",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}
