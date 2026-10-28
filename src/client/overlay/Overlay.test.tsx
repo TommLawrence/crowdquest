@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Overlay } from "./Overlay.js";
+import { getOverlayVisualState, Overlay } from "./Overlay.js";
 import type { PublicAppState } from "../state.js";
 
 function state(phase: PublicAppState["challenge"]["phase"]): PublicAppState {
@@ -39,14 +39,15 @@ describe("OBS overlay rendering", () => {
     expect(markup).toContain("00:10");
     expect(markup).toContain("DEMO");
     expect(markup).toContain("3");
-    expect(markup).not.toContain("<button");
+    expect(markup).toContain("SOUND ON");
+    expect(markup.match(/<button/g)).toHaveLength(1);
     expect(markup).not.toContain("<form");
   });
 
   it("renders active progress and escapes viewer supplied modifier text", () => {
     const markup = renderToStaticMarkup(<Overlay state={state("active")} connection="connected" serverNow={90_000} />);
     expect(markup).toContain("SHARED CHARGE");
-    expect(markup).toContain("40%");
+    expect(markup).toContain("scaleX(0.4)");
     expect(markup).toContain("TYPE !CHARGE TO HELP");
     expect(markup).toContain("&lt;img src=x onerror=alert(1)&gt;");
     expect(markup).not.toContain("<img");
@@ -68,5 +69,20 @@ describe("OBS overlay rendering", () => {
     live.challengeSource = "live";
     live.twitch.connection = "reconnecting";
     expect(renderToStaticMarkup(<Overlay state={live} connection="connected" serverNow={90_000} />)).toContain("TWITCH CHAT RECONNECTING");
+  });
+
+  it("maps charge milestones, urgency, and terminal phases to distinct visual states", () => {
+    expect(getOverlayVisualState("active", 1, 4, 30)).toMatchObject({ mood: "active", milestone: 25, ratio: .25 });
+    expect(getOverlayVisualState("active", 2, 4, 9)).toMatchObject({ mood: "urgent", milestone: 50, ratio: .5 });
+    expect(getOverlayVisualState("active", 3, 4, 20)).toMatchObject({ mood: "active", milestone: 75, ratio: .75 });
+    expect(getOverlayVisualState("succeeded", 4, 4, null)).toMatchObject({ mood: "success", milestone: 100, ratio: 1 });
+    expect(getOverlayVisualState("expired", 2, 4, null).mood).toBe("expired");
+    expect(getOverlayVisualState("cancelled", 0, 4, null).mood).toBe("cancelled");
+
+    const urgent = state("active");
+    urgent.challenge.charge = 5;
+    const markup = renderToStaticMarkup(<Overlay state={urgent} connection="connected" serverNow={99_000} />);
+    expect(markup).toContain('data-overlay-urgent="true"');
+    expect(markup).toContain('data-charge-milestone="50"');
   });
 });

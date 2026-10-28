@@ -1,0 +1,27 @@
+.overlay-root { position: relative; overflow: hidden; }
+.overlay-sound-toggle { position: absolute; z-index: 4; top: clamp(10px, 1.5vw, 22px); right: clamp(10px, 1.5vw, 22px); min-height: 28px; padding: 0 9px; border: 1px solid #82945b88; border-radius: 4px; background: #111714d9; color: #d5e0cb; cursor: pointer; font: 700 8px ui-monospace, monospace; letter-spacing: .08em; }
+.overlay-sound-toggle:hover { border-color: #ceff6b; color: #ceff6b; }
+.overlay-progress-track i, .overlay-vote-track i { transform-origin: left center; will-change: transform; }
+.overlay-progress-track i { transition: transform .55s cubic-bezier(.2,.75,.2,1); }
+.overlay-vote-track i { width: 100%; transform-origin: left center; transition: transform .4s ease; }
+.overlay-progress[data-overlay-mood="active"][data-charge-milestone="25"], .overlay-progress[data-overlay-mood="urgent"][data-charge-milestone="25"] { animation: charge-mark-25 .55s ease-out; }
+.overlay-progress[data-overlay-mood="active"][data-charge-milestone="50"], .overlay-progress[data-overlay-mood="urgent"][data-charge-milestone="50"] { animation: charge-mark-50 .6s ease-out; }
+.overlay-progress[data-overlay-mood="active"][data-charge-milestone="75"], .overlay-progress[data-overlay-mood="urgent"][data-charge-milestone="75"] { animation: charge-mark-75 .7s ease-out; }
+.overlay-progress[data-overlay-mood="active"][data-charge-milestone="100"], .overlay-progress[data-overlay-mood="urgent"][data-charge-milestone="100"] { animation: charge-mark-100 .8s ease-out; }
+.overlay-root[data-overlay-urgent="true"] .overlay-clock strong { animation: clock-urgency .8s ease-in-out infinite alternate; }
+.overlay-root .overlay-succeeded { animation: quest-success-enter .4s ease-out both; }
+.overlay-root .overlay-succeeded::after { position: absolute; z-index: 0; top: -40%; right: -4%; width: 34%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, #ceff6b55, #ceff6b00 68%); content: ""; pointer-events: none; animation: success-flare 1.6s ease-out both; }
+.overlay-root .overlay-quest > * { position: relative; z-index: 1; }
+
+@keyframes charge-mark-25 { 45% { transform: scale(1.012); opacity: 1; } }
+@keyframes charge-mark-50 { 35% { transform: scale(1.018); opacity: 1; } }
+@keyframes charge-mark-75 { 30% { transform: scale(1.024); opacity: 1; } }
+@keyframes charge-mark-100 { 25% { transform: scale(1.03); opacity: 1; } }
+@keyframes clock-urgency { to { opacity: .66; transform: scale(1.035); } }
+@keyframes quest-success-enter { from { opacity: .78; transform: translateY(7px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes success-flare { from { opacity: .9; transform: scale(.7) rotate(-20deg); } to { opacity: .12; transform: scale(1.12) rotate(20deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-progress-track i, .overlay-vote-track i { transition: none; }
+  .overlay-progress, .overlay-root[data-overlay-urgent="true"] .overlay-clock strong, .overlay-root .overlay-succeeded, .overlay-root .overlay-succeeded::after { animation: none !important; }
+}
