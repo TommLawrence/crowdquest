@@ -54,6 +54,13 @@ export default defineSchema({
     detail: v.union(v.null(), v.string()),
     at: v.number(),
   }).index("by_eventId", ["eventId"]).index("by_at", ["at"]),
+  viewerStats: defineTable({
+    userId: v.string(),
+    displayName: v.string(),
+    totalCharges: v.number(),
+    totalContributions: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]).index("by_totalCharges_and_userId", ["totalCharges", "userId"]),
   processedEvents: defineTable({
     eventId: v.string(),
     chatMessageId: v.string(),

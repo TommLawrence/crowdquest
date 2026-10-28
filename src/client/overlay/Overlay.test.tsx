@@ -71,6 +71,25 @@ describe("OBS overlay rendering", () => {
     expect(renderToStaticMarkup(<Overlay state={live} connection="connected" serverNow={90_000} />)).toContain("TWITCH CHAT RECONNECTING");
   });
 
+  it("renders the public top chargers during idle without exposing internal viewer ids", () => {
+    const markup = renderToStaticMarkup(<Overlay
+      state={state("idle")}
+      connection="connected"
+      serverNow={100_000}
+      leaderboard={[
+        { displayName: "Chat Champion", totalCharges: 42, totalContributions: 18 },
+        { displayName: "<img src=x onerror=alert(1)>", totalCharges: 30, totalContributions: 11 },
+      ]}
+    />);
+    expect(markup).toContain("All-time top chargers");
+    expect(markup).toContain("Chat Champion");
+    expect(markup).toContain("42");
+    expect(markup).toContain("18 CONTRIBUTIONS");
+    expect(markup).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(markup).not.toContain("<img");
+    expect(markup).not.toContain("viewer-");
+  });
+
   it("maps charge milestones, urgency, and terminal phases to distinct visual states", () => {
     expect(getOverlayVisualState("active", 1, 4, 30)).toMatchObject({ mood: "active", milestone: 25, ratio: .25 });
     expect(getOverlayVisualState("active", 2, 4, 9)).toMatchObject({ mood: "urgent", milestone: 50, ratio: .5 });

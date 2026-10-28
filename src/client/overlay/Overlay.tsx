@@ -5,6 +5,11 @@ import "./overlay-effects.css";
 
 type OverlayMood = "idle" | "calm" | "active" | "urgent" | "success" | "expired" | "cancelled";
 type ChargeMilestone = 0 | 25 | 50 | 75 | 100;
+export interface OverlayLeaderboardEntry {
+  displayName: string;
+  totalCharges: number;
+  totalContributions: number;
+}
 
 export function getOverlayVisualState(phase: string, charge: number, goal: number, secondsRemaining: number | null): {
   mood: OverlayMood;
@@ -23,10 +28,11 @@ export function getOverlayVisualState(phase: string, charge: number, goal: numbe
   return { mood, milestone, ratio };
 }
 
-export function Overlay({ state, connection, serverNow }: {
+export function Overlay({ state, connection, serverNow, leaderboard = [] }: {
   state: PublicOverlayState | null;
   connection: RealtimeStatus;
   serverNow: number;
+  leaderboard?: readonly OverlayLeaderboardEntry[];
 }) {
   const challenge = state?.challenge;
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -92,10 +98,21 @@ export function Overlay({ state, connection, serverNow }: {
       {(disconnected || twitchReconnecting) && <div className="overlay-connection" role="status"><i />
         {disconnected ? state ? "RECONNECTING TO QUEST" : "CONNECTING TO QUEST" : "TWITCH CHAT RECONNECTING"}
       </div>}
-      {idle ? <section className="overlay-idle" data-overlay-mood={visual.mood}>
-        <span className="overlay-brand"><b>CQ</b> CROWDQUEST <i>LIVE</i></span>
-        <strong>Waiting for the next community quest</strong>
-        <span>Chat will help write the rules.</span>
+      {idle ? <section className={`overlay-idle${leaderboard.length ? " overlay-idle-with-leaderboard" : ""}`} data-overlay-mood={visual.mood}>
+        <div className="overlay-idle-copy">
+          <span className="overlay-brand"><b>CQ</b> CROWDQUEST <i>LIVE</i></span>
+          <strong>Waiting for the next community quest</strong>
+          <span>Chat will help write the rules.</span>
+        </div>
+        {leaderboard.length > 0 && <aside className="overlay-leaderboard" aria-label="All-time top chargers">
+          <div className="overlay-leaderboard-heading"><span>COMMUNITY LEGENDS</span><small>ALL-TIME TOP CHARGERS</small></div>
+          <ol>{leaderboard.slice(0, 5).map((viewer, index) => <li key={`${viewer.displayName}-${index}`}>
+            <span className="overlay-leaderboard-rank">{String(index + 1).padStart(2, "0")}</span>
+            <span className="overlay-leaderboard-name" title={viewer.displayName}>{viewer.displayName}</span>
+            <strong>{viewer.totalCharges.toLocaleString()} <i>CHARGE</i></strong>
+            <small>{viewer.totalContributions.toLocaleString()} CONTRIBUTIONS</small>
+          </li>)}</ol>
+        </aside>}
       </section> : <section className={`overlay-quest overlay-${challenge.phase}`} data-overlay-mood={visual.mood}>
         <div className="overlay-topline">
           <span className="overlay-brand"><b>CQ</b> CROWDQUEST <i>LIVE</i></span>

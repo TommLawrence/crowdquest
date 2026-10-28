@@ -28,14 +28,14 @@ async function installCredentials(t: TestContext) {
   });
 }
 
-async function deliver(t: TestContext, eventId: string, chatMessageId: string, text: string) {
+async function deliver(t: TestContext, eventId: string, chatMessageId: string, text: string, userId = "viewer-1", displayName = "Viewer") {
   return await t.mutation(internal.state.applyChatEvent, {
     eventId,
     chatMessageId,
     broadcasterId: identities.broadcaster.id,
     chatReaderId: identities.chatReader.id,
-    userId: "viewer-1",
-    displayName: "Viewer",
+    userId,
+    displayName,
     text,
     at: Date.now(),
   });
@@ -55,6 +55,11 @@ async function forceDeadlinePast(t: TestContext) {
 }
 
 describe("Convex authoritative challenge state", () => {
+  it("returns an empty leaderboard on a fresh deployment", async () => {
+    const t = convexTest(schema, modules);
+    expect(await t.query(api.state.publicLeaderboard, {})).toEqual([]);
+  });
+
   it("rejects unauthenticated streamer actions and invalid transitions", async () => {
     const t = convexTest(schema, modules);
     const unauthenticated = await t.mutation(internal.state.applyAction, {
@@ -124,5 +129,66 @@ describe("Convex authoritative challenge state", () => {
     expect(overlay).not.toHaveProperty("suggestionMetadata");
     expect(JSON.stringify(overlay)).not.toContain("host");
     expect(JSON.stringify(overlay)).not.toContain("reader-1");
+  });
+
+  it("accumulates only accepted live charges and ignores rejected and deduplicated commands", async () => {
+    const t = convexTest(schema, modules);
+    await installCredentials(t);
+    await t.mutation(internal.state.applyAction, {
+      streamerId: identities.broadcaster.id,
+      action: { type: "start-round", config: { ...config, chargeGoal: 4, chargePerMessage: 2 } },
+    });
+    expect(await deliver(t, "charge-before-active", "chat-before-active", "!charge", "viewer-1", "Unaccepted Name"))
+      .toMatchObject({ accepted: false, reason: "invalid-phase" });
+    expect(await t.query(api.state.publicLeaderboard, {})).toEqual([]);
+
+    expect(await deliver(t, "suggestion", "chat-suggestion", "!suggest No jumping", "suggestor", "Idea Maker"))
+      .toMatchObject({ accepted: true });
+    await forceDeadlinePast(t);
+    const review = await t.query(api.state.publicState, {});
+    const suggestionId = review.challenge.suggestions[0]?.id;
+    if (!suggestionId) throw new Error("Suggestion should be persisted before approval.");
+    await t.mutation(internal.state.applyAction, {
+      streamerId: identities.broadcaster.id, action: { type: "approve-candidates", suggestionIds: [suggestionId] },
+    });
+    await forceDeadlinePast(t);
+
+    expect(await deliver(t, "charge-1", "chat-charge-1", "!charge", "viewer-1", "First Name"))
+      .toMatchObject({ accepted: true });
+    expect(await deliver(t, "charge-1", "chat-retry", "!charge", "viewer-1", "Duplicate Name"))
+      .toMatchObject({ accepted: false, reason: "duplicate" });
+    expect(await deliver(t, "vote-in-active", "chat-rejected", "!vote A", "viewer-1", "Rejected Name"))
+      .toMatchObject({ accepted: false, reason: "invalid-phase" });
+
+    await new Promise((resolve) => setTimeout(resolve, 1_010));
+    expect(await deliver(t, "charge-2", "chat-charge-2", "!charge", "viewer-1", "Updated Name"))
+      .toMatchObject({ accepted: true });
+    const leaderboard = await t.query(api.state.publicLeaderboard, {});
+    expect(leaderboard).toEqual([{ displayName: "Updated Name", totalCharges: 4, totalContributions: 2 }]);
+    expect(Object.keys(leaderboard[0] ?? {}).sort()).toEqual(["displayName", "totalCharges", "totalContributions"]);
+    expect(JSON.stringify(leaderboard)).not.toContain("viewer-1");
+  });
+
+  it("returns only the top five with deterministic ordering for equal charge totals", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      const seeded = [
+        { userId: "viewer-a", displayName: "Alpha", totalCharges: 10, totalContributions: 3, updatedAt: 10 },
+        { userId: "viewer-z", displayName: "Zulu", totalCharges: 10, totalContributions: 4, updatedAt: 10 },
+        { userId: "viewer-b", displayName: "Bravo", totalCharges: 7, totalContributions: 2, updatedAt: 10 },
+        { userId: "viewer-y", displayName: "Yankee", totalCharges: 7, totalContributions: 3, updatedAt: 10 },
+        { userId: "viewer-m", displayName: "Mike", totalCharges: 6, totalContributions: 2, updatedAt: 10 },
+        { userId: "viewer-x", displayName: "Xray", totalCharges: 2, totalContributions: 1, updatedAt: 10 },
+      ];
+      for (const viewer of seeded) await ctx.db.insert("viewerStats", viewer);
+    });
+
+    const first = await t.query(api.state.publicLeaderboard, {});
+    const second = await t.query(api.state.publicLeaderboard, {});
+    expect(first.map((viewer) => viewer.displayName)).toEqual(["Zulu", "Alpha", "Yankee", "Bravo", "Mike"]);
+    expect(second).toEqual(first);
+    expect(first).toHaveLength(5);
+    expect(JSON.stringify(first)).not.toContain("viewer-");
+    expect(first.every((viewer) => Object.keys(viewer).sort().join(",") === "displayName,totalCharges,totalContributions")).toBe(true);
   });
 });

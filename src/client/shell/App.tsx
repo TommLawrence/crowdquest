@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConvexProvider, ConvexReactClient, useConvexConnectionState, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api.js";
-import { Overlay } from "../overlay/Overlay.js";
+import { Overlay, type OverlayLeaderboardEntry } from "../overlay/Overlay.js";
 import { useAppState, type RealtimeStatus } from "../useAppState.js";
 import type { Candidate, PublicAppState, PublicOverlayState, TwitchStatus } from "../state.js";
 
@@ -59,8 +59,9 @@ function ConvexControlRoom() {
 
 function ConvexOverlayView() {
   const state = useQuery(api.state.publicOverlayState, {}) as PublicOverlayState | undefined;
+  const leaderboard = useQuery(api.state.publicLeaderboard, {}) as OverlayLeaderboardEntry[] | undefined;
   const { connection, serverNow } = useCurrentAppState();
-  return <Overlay state={state ?? null} connection={connection} serverNow={serverNow} />;
+  return <Overlay state={state ?? null} connection={connection} serverNow={serverNow} leaderboard={leaderboard ?? []} />;
 }
 
 function useCurrentAppState() {

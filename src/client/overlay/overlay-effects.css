@@ -1,4 +1,18 @@
 .overlay-root { position: relative; overflow: hidden; }
+.overlay-idle-copy { display: grid; gap: 11px; }
+.overlay-idle-copy > strong { color: var(--text); font-size: clamp(17px, 2vw, 26px); font-weight: 550; letter-spacing: -.03em; }
+.overlay-idle-copy > span:last-child { color: #aab5ac; font-size: 12px; }
+.overlay-idle-with-leaderboard { width: min(100%, 680px); }
+.overlay-leaderboard { display: grid; gap: 8px; margin-top: 3px; padding-top: 12px; border-top: 1px solid #c1d1b522; }
+.overlay-leaderboard-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #9db585; font: 8px ui-monospace, monospace; letter-spacing: .12em; }
+.overlay-leaderboard-heading small { color: #87948a; font-size: 7px; }
+.overlay-leaderboard ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.overlay-leaderboard li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #c1d1b214; color: #e3e9de; font-size: 10px; }
+.overlay-leaderboard-rank { grid-row: 1 / span 2; align-self: center; color: #89966f; font: 8px ui-monospace, monospace; }
+.overlay-leaderboard-name { overflow: hidden; color: #e8eee5; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.overlay-leaderboard li strong { color: var(--acid); font: 600 9px ui-monospace, monospace; white-space: nowrap; }
+.overlay-leaderboard li strong i { color: #879581; font-size: 7px; font-style: normal; font-weight: 400; }
+.overlay-leaderboard li small { grid-column: 2 / span 2; color: #8d9a8f; font: 7px ui-monospace, monospace; letter-spacing: .06em; }
 .overlay-sound-toggle { position: absolute; z-index: 4; top: clamp(10px, 1.5vw, 22px); right: clamp(10px, 1.5vw, 22px); min-height: 28px; padding: 0 9px; border: 1px solid #82945b88; border-radius: 4px; background: #111714d9; color: #d5e0cb; cursor: pointer; font: 700 8px ui-monospace, monospace; letter-spacing: .08em; }
 .overlay-sound-toggle:hover { border-color: #ceff6b; color: #ceff6b; }
 .overlay-progress-track i, .overlay-vote-track i { transform-origin: left center; will-change: transform; }

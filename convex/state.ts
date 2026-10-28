@@ -149,6 +149,14 @@ export const publicOverlayState = query({
   },
 });
 
+export const publicLeaderboard = query({
+  args: {},
+  handler: async (ctx) => {
+    const records = await ctx.db.query("viewerStats").withIndex("by_totalCharges_and_userId").order("desc").take(5);
+    return records.map(({ displayName, totalCharges, totalContributions }) => ({ displayName, totalCharges, totalContributions }));
+  },
+});
+
 export const getCredential = internalQuery({
   args: { key: v.string() },
   handler: async (ctx, { key }) => {
@@ -294,6 +302,7 @@ export const applyChatEvent = internalMutation({
         outcome = parsed.error;
       } else {
         command = parsed.command.type;
+        const chargeBefore = nextState.charge;
         const result = record.source && record.source !== "live"
           ? { accepted: false as const, state: nextState, error: "source-mismatch" }
           : applyChatCommand(nextState, args.userId, parsed.command, now);
@@ -306,6 +315,21 @@ export const applyChatEvent = internalMutation({
             detail = suggestion.text;
           }
         } else if (parsed.command.type === "vote") detail = parsed.command.label;
+        else if (result.accepted && parsed.command.type === "charge") {
+          const acceptedAmount = result.state.charge - chargeBefore;
+          const displayName = args.displayName.trim().slice(0, 80);
+          if (acceptedAmount > 0) {
+            const currentStats = await ctx.db.query("viewerStats").withIndex("by_userId", (q) => q.eq("userId", args.userId)).unique();
+            const updatedStats = {
+              displayName: displayName || currentStats?.displayName || "",
+              totalCharges: (currentStats?.totalCharges ?? 0) + acceptedAmount,
+              totalContributions: (currentStats?.totalContributions ?? 0) + 1,
+              updatedAt: now,
+            };
+            if (currentStats) await ctx.db.patch(currentStats._id, updatedStats);
+            else await ctx.db.insert("viewerStats", { userId: args.userId, ...updatedStats });
+          }
+        }
     }
 
     await ctx.db.insert("processedEvents", { eventId: args.eventId, chatMessageId: args.chatMessageId, receivedAt: now });
